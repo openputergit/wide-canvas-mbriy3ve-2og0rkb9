@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TiffinWala - Digital Tiffin Service Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+</head>
+<style>
+    body {
+        font-family: 'Poppins', sans-serif;
+    }
+    .loader {
+        border: 4px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 4px solid #3498db;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+<body class="bg-gray-100">
+    <!-- Login Section -->
+    <div id="loginSection" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h2 class="text-2xl font-bold text-center mb-6">TiffinWala Login</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="hidden">
+        <nav class="bg-blue-600 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-xl font-bold">TiffinWala Admin</h1>
+                <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container mx-auto p-4">
+            <!-- Menu Management -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-bold mb-4">Today's Menu</h2>
+                <form id="menuForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Menu Items</label>
+                        <textarea id="menuItems" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" rows="3" required></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Price (₹)</label>
+                        <input type="number" id="price" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" required>
+                    </div>
+                    <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600">Update Menu</button>
+                </form>
+            </div>
+
+            <!-- Customer Register -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold mb-4">Customer Register</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lunch</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dinner</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerRegister" class="bg-white divide-y divide-gray-200">
+                            <!-- Customers will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Dashboard -->
+    <div id="customerDashboard" class="hidden">
+        <nav class="bg-blue-600 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-xl font-bold">TiffinWala</h1>
+                <button onclick="logout()" class="bg-red-500 px-4 py-2 rounded">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container mx-auto p-4">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold mb-4">Today's Menu</h2>
+                <div id="todaysMenu" class="mb-4">
+                    <!-- Menu will be populated here -->
+                </div>
+                <div class="flex space-x-4">
+                    <button onclick="orderTiffin('lunch')" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600">Order Lunch</button>
+                    <button onclick="orderTiffin('dinner')" class="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600">Order Dinner</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const appSlug = 'tiffin-app-123456';
+let currentUser = null;
+let isAdmin = false;
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+});
+
+// Handle Login
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        // Simulate login - In real app, validate against MongoDB
+        if (email === 'admin@tiffinwala.com' && password === 'admin123') {
+            currentUser = { id: 'admin123', email, role: 'admin' };
+            isAdmin = true;
+            showAdminDashboard();
+        } else {
+            currentUser = { id: 'user123', email, role: 'customer' };
+            isAdmin = false;
+            showCustomerDashboard();
+        }
+    } catch (error) {
+        swal('Error', 'Login failed. Please try again.', 'error');
+    }
+}
+
+// Show Admin Dashboard
+function showAdminDashboard() {
+    document.getElementById('loginSection').classList.add('hidden');
+    document.getElementById('adminDashboard').classList.remove('hidden');
+    document.getElementById('customerDashboard').classList.add('hidden');
+    loadCustomerRegister();
+}
+
+// Show Customer Dashboard
+function showCustomerDashboard() {
+    document.getElementById('loginSection').classList.add('hidden');
+    document.getElementById('adminDashboard').classList.add('hidden');
+    document.getElementById('customerDashboard').classList.remove('hidden');
+    loadTodaysMenu();
+}
+
+// Load Customer Register
+async function loadCustomerRegister() {
+    try {
+        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer BjGRNUwMZzNMJ5Dgs0fhJFSgcEi2',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                appSlug,
+                action: 'read',
+                collection: 'orders',
+                conditions: {
+                    date: new Date().toISOString().split('T')[0]
+                }
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            const registerHtml = data.result.map(order => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">${order.customerName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${order.lunch ? '✓' : '✗'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${order.dinner ? '✓' : '✗'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${order.contact}</td>
+                </tr>
+            `).join('');
+            document.getElementById('customerRegister').innerHTML = registerHtml;
+        }
+    } catch (error) {
+        swal('Error', 'Failed to load customer register', 'error');
+    }
+}
+
+// Load Today's Menu
+async function loadTodaysMenu() {
+    try {
+        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer BjGRNUwMZzNMJ5Dgs0fhJFSgcEi2',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                appSlug,
+                action: 'read',
+                collection: 'menu',
+                conditions: {
+                    date: new Date().toISOString().split('T')[0]
+                }
+            })
+        });
+
+        const data = await response.json();
+        if (data.success && data.result.length > 0) {
+            const menu = data.result[0];
+            document.getElementById('todaysMenu').innerHTML = `
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="font-bold mb-2">Items:</p>
+                    <p class="mb-4">${menu.items}</p>
+                    <p class="font-bold">Price: ₹${menu.price}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        swal('Error', 'Failed to load menu', 'error');
+    }
+}
+
+// Order Tiffin
+async function orderTiffin(type) {
+    try {
+        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer BjGRNUwMZzNMJ5Dgs0fhJFSgcEi2',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                appSlug,
+                action: 'create',
+                collection: 'orders',
+                data: {
+                    userId: currentUser.id,
+                    type,
+                    date: new Date().toISOString().split('T')[0],
+                    status: 'pending'
+                }
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            swal('Success', `Your ${type} order has been placed!`, 'success');
+        }
+    } catch (error) {
+        swal('Error', 'Failed to place order', 'error');
+    }
+}
+
+// Logout
+function logout() {
+    currentUser = null;
+    isAdmin = false;
+    document.getElementById('loginSection').classList.remove('hidden');
+    document.getElementById('adminDashboard').classList.add('hidden');
+    document.getElementById('customerDashboard').classList.add('hidden');
+    document.getElementById('loginForm').reset();
+}
+
+// Initialize menu form submission
+document.getElementById('menuForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const items = document.getElementById('menuItems').value;
+    const price = document.getElementById('price').value;
+
+    try {
+        const response = await fetch('https://r0c8kgwocscg8gsokogwwsw4.zetaverse.one/mongodb', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer BjGRNUwMZzNMJ5Dgs0fhJFSgcEi2',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                appSlug,
+                action: 'create',
+                collection: 'menu',
+                data: {
+                    items,
+                    price: Number(price),
+                    date: new Date().toISOString().split('T')[0]
+                }
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            swal('Success', 'Menu updated successfully!', 'success');
+        }
+    } catch (error) {
+        swal('Error', 'Failed to update menu', 'error');
+    }
+});
+</script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
